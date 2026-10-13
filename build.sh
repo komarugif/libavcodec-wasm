@@ -2,7 +2,8 @@
 # Builds avcdec.wasm: FFmpeg's H.264 decoder, and nothing else of FFmpeg, as
 # a WebAssembly reactor module.
 #
-# Needs clang with a wasm32 backend, wasm-ld, and the WASI sysroot plus the
+# Needs zstd, which compresses the module, and clang with a wasm32
+# backend, wasm-ld, and the WASI sysroot plus the
 # wasm32 compiler-rt builtins from https://github.com/WebAssembly/wasi-sdk
 # (its "wasi-sysroot" and "libclang_rt" release assets are enough).
 # FFmpeg's sources (n7.1.1) are the ffmpeg submodule:
@@ -53,4 +54,11 @@ make -j"$(nproc)"
   -lwasi-emulated-process-clocks \
   -o "$here/avcdec.wasm"
 
-echo "built $here/avcdec.wasm"
+# komarugram downloads it zstd-compressed at the highest level, a fifth
+# of its size:
+# from the file, not a pipe, so that the frame tells its size and unpacking
+# takes one buffer of it. zstd writes no name or time: the same module gives
+# the same bytes.
+zstd --ultra -22 -q -f "$here/avcdec.wasm" -o "$here/avcdec.wasm.zst"
+
+echo "built $here/avcdec.wasm and $here/avcdec.wasm.zst"

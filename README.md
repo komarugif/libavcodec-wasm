@@ -9,8 +9,9 @@ loads it to play H.264 video on machines without FFmpeg.
 | File | What |
 |---|---|
 | `avcdec.wasm` | The module |
+| `avcdec.wasm.zst` | The same module, zstd-compressed (`zstd --ultra -22`): what komarugram downloads |
 | `h264shim.c` | The only surface the host can call: send a sample, receive pictures, read their planes |
-| `build.sh` | How `avcdec.wasm` is built |
+| `build.sh` | How `avcdec.wasm` and `avcdec.wasm.zst` are built |
 | `ffmpeg` | FFmpeg's sources, tag `n7.1.1`, as a git submodule of https://github.com/FFmpeg/FFmpeg, unmodified |
 
 ## Building
