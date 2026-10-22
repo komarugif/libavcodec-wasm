@@ -1,8 +1,10 @@
 # libavcodec-wasm
 
-`avcdec.wasm` is FFmpeg's H.264 decoder, and nothing else of FFmpeg, compiled
-to a WebAssembly (WASI reactor) module. [komarugram](https://github.com/komarugif/komarugram-go)
-loads it to play H.264 video on machines without FFmpeg.
+`avcdec.wasm` is FFmpeg's H.264 and MPEG-4 Part 2 decoders, and nothing else
+of FFmpeg, compiled to a WebAssembly (WASI reactor) module.
+[komarugram](https://github.com/komarugif/komarugram-go) loads it to play
+H.264 video, and MPEG-4 Part 2 (Xvid, DivX, MP4's `mp4v`: Telegram's GIFs of
+codec `mpeg4`), on machines without FFmpeg.
 
 ## Contents
 
@@ -10,7 +12,7 @@ loads it to play H.264 video on machines without FFmpeg.
 |---|---|
 | `avcdec.wasm` | The module |
 | `avcdec.wasm.zst` | The same module, zstd-compressed (`zstd --ultra -22`): what komarugram downloads |
-| `h264shim.c` | The only surface the host can call: send a sample, receive pictures, read their planes |
+| `h264shim.c` | The only surface the host can call: start a decoder of either codec (`h264w_new`, `h264w_new_mpeg4`), send a sample, receive pictures, read their planes |
 | `build.sh` | How `avcdec.wasm` and `avcdec.wasm.zst` are built |
 | `ffmpeg` | FFmpeg's sources, tag `n7.1.1`, as a git submodule of https://github.com/FFmpeg/FFmpeg, unmodified |
 
@@ -22,7 +24,10 @@ cd libavcodec-wasm
 WASI_SYSROOT=/path/to/wasi-sysroot RESOURCE_DIR=/path/to/resource-dir ./build.sh
 ```
 
-See the head of `build.sh` for the toolchain.
+See the head of `build.sh` for the toolchain. The module published is built
+with wasi-sdk 34's own clang (`CLANG=$WASI_SDK/bin/clang`, and its
+`llvm-ar`, `llvm-ranlib`, `llvm-nm`), which gives it byte for byte; another
+clang gives another module.
 
 ## License
 

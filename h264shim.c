@@ -49,27 +49,47 @@ __attribute__((export_name("h264w_drop"))) void h264w_drop(h264w_decoder *d) {
   free(d);
 }
 
-/* Starts a decoder for samples described by config, an avcC record. */
-__attribute__((export_name("h264w_new"))) h264w_decoder *h264w_new(const uint8_t *config,
-                                                                   size_t size) {
-  const AVCodec *codec = avcodec_find_decoder(AV_CODEC_ID_H264);
-  if (codec == NULL || size == 0) return NULL;
+/* Opens a decoder of codec for samples described by config, which may be
+ * empty only where the codec allows (an MPEG-4 Part 2 stream can carry its
+ * headers in its samples). */
+static h264w_decoder *open_decoder(enum AVCodecID id, const uint8_t *config, size_t size,
+                                   int needs_config) {
+  const AVCodec *codec = avcodec_find_decoder(id);
+  if (codec == NULL || (needs_config && size == 0)) return NULL;
   h264w_decoder *d = (h264w_decoder *)calloc(1, sizeof(h264w_decoder));
   if (d == NULL) return NULL;
   d->ctx = avcodec_alloc_context3(codec);
   d->packet = av_packet_alloc();
   d->frame = av_frame_alloc();
   if (d->ctx == NULL || d->packet == NULL || d->frame == NULL) goto fail;
-  d->ctx->extradata = av_mallocz(size + AV_INPUT_BUFFER_PADDING_SIZE);
-  if (d->ctx->extradata == NULL) goto fail;
-  memcpy(d->ctx->extradata, config, size);
-  d->ctx->extradata_size = (int)size;
+  if (size > 0) {
+    if (size > INT32_MAX - AV_INPUT_BUFFER_PADDING_SIZE) goto fail;
+    d->ctx->extradata = av_mallocz(size + AV_INPUT_BUFFER_PADDING_SIZE);
+    if (d->ctx->extradata == NULL) goto fail;
+    memcpy(d->ctx->extradata, config, size);
+    d->ctx->extradata_size = (int)size;
+  }
   d->ctx->thread_count = 1;
   if (avcodec_open2(d->ctx, codec, NULL) < 0) goto fail;
   return d;
 fail:
   h264w_drop(d);
   return NULL;
+}
+
+/* Starts a decoder for samples described by config, an avcC record. */
+__attribute__((export_name("h264w_new"))) h264w_decoder *h264w_new(const uint8_t *config,
+                                                                   size_t size) {
+  return open_decoder(AV_CODEC_ID_H264, config, size, 1);
+}
+
+/* Starts an MPEG-4 Part 2 decoder (Xvid, DivX, MP4's "mp4v") for samples
+ * described by config, the DecoderSpecificInfo of the track's esds: its
+ * visual object sequence and object layer headers. It may be empty when
+ * the samples carry them. The rest of the surface is the same. */
+__attribute__((export_name("h264w_new_mpeg4"))) h264w_decoder *h264w_new_mpeg4(const uint8_t *config,
+                                                                               size_t size) {
+  return open_decoder(AV_CODEC_ID_MPEG4, config, size, 0);
 }
 
 /* Skips the deblocking filter: faster, with blockier pictures. */

@@ -1,6 +1,6 @@
 #!/bin/sh
-# Builds avcdec.wasm: FFmpeg's H.264 decoder, and nothing else of FFmpeg, as
-# a WebAssembly reactor module.
+# Builds avcdec.wasm: FFmpeg's H.264 and MPEG-4 Part 2 decoders, and nothing
+# else of FFmpeg, as a WebAssembly reactor module.
 #
 # Needs zstd, which compresses the module, and clang with a wasm32
 # backend, wasm-ld, and the WASI sysroot plus the
@@ -15,7 +15,9 @@
 #
 # FFmpeg's fast paths are assembly, which WebAssembly cannot take, so this
 # is its C with the compiler's own SIMD128: about 2.8 ms for a 512x512
-# picture and 10 ms for 720x1280, several times native FFmpeg.
+# picture and 10 ms for 720x1280, several times native FFmpeg. MPEG-4 Part 2,
+# a simpler codec, takes 1.4 ms for 768x960; it adds 378 KB to the module,
+# 70 KB compressed (zstd --ultra -22).
 #
 # The module is LGPL 2.1 or later, as FFmpeg configured this way is.
 set -eu
@@ -37,7 +39,7 @@ cd "$build"
 "$FFMPEG/configure" --enable-cross-compile --target-os=none --arch=wasm32 \
   --cc="$CLANG" --ar="$AR" --ranlib="$RANLIB" --nm="$NM" \
   --extra-cflags="$target -O3 -msimd128" --extra-ldflags="$target" \
-  --disable-everything --enable-decoder=h264 \
+  --disable-everything --enable-decoder=h264,mpeg4 \
   --disable-programs --disable-doc --disable-asm --disable-inline-asm \
   --disable-pthreads --disable-w32threads --disable-os2threads \
   --disable-network --disable-avdevice --disable-avformat --disable-swresample \
